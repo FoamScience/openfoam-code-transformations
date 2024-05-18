@@ -1,0 +1,64 @@
+;; extracting constructors which have template arguments
+(template_declaration 
+    parameters: (template_parameter_list)
+    (class_specifier 
+      name: (_) @name
+      body: (field_declaration_list 
+        (_)*
+        [
+        (declaration 
+          declarator: (function_declarator 
+            declarator: (template_function 
+              name: (identifier) @ctorname
+              arguments: (template_argument_list) @args)
+            parameters: (parameter_list) @params) @ctor)
+        (template_declaration
+          parameters: (template_parameter_list)
+          (declaration
+            declarator: (function_declarator
+              declarator: (template_function
+                name: (_) @ctorname
+                arguments: (template_argument_list) @args)
+              parameters: (parameter_list) @params)) @ctor)
+        ]
+))) {
+    node @ctor.node
+    attr (@ctor.node) ctor = (format "{}{}{}" (source-text @ctorname) (source-text @args) (source-text @params))
+    attr (@ctor.node) classname = (source-text @name)
+    attr (@ctor.node) line = (plus 1 (start-row @args))
+    attr (@ctor.node) col = (plus 1 (start-column @args))
+}
+
+;; extracting copy+move constructors which have template arguments
+(template_declaration 
+    parameters: (template_parameter_list)
+    (class_specifier 
+      name: (_) @name
+      body: (field_declaration_list 
+        (_)*
+        (function_definition
+          declarator: (function_declarator
+            declarator: (template_function
+              name: (_) @ctorname
+              arguments: (template_argument_list) @args)
+            parameters: (parameter_list) @params) @ctor)
+))) {
+    node @ctor.node
+    attr (@ctor.node) ctor = (format "{}{}{}" (source-text @ctorname) (source-text @args) (source-text @params))
+    attr (@ctor.node) classname = (source-text @name)
+    attr (@ctor.node) line = (plus 1 (start-row @args))
+    attr (@ctor.node) col = (plus 1 (start-column @args))
+}
+
+;; extracting destructors with template arguments
+(ERROR
+    (virtual)?
+    (destructor_name (_)@ctorname)
+    (_)*
+) @ctor {
+    node @ctor.node
+    attr (@ctor.node) ctor = (source-text @ctor)
+    attr (@ctor.node) classname = (source-text @ctorname)
+    attr (@ctor.node) line = (plus 1 (start-row @ctorname))
+    attr (@ctor.node) col = (plus 1 (end-column @ctorname))
+}
